@@ -26,6 +26,7 @@ const FORWARDED_RESPONSE_HEADERS = new Set([
 ]);
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+const ADMIN_AUTH_COOKIE_NAMES = new Set(["eggship_admin_at", "eggship_admin_rt"]);
 
 export class ApiProxyConfigurationError extends Error {}
 
@@ -93,6 +94,13 @@ function copyAllowedRequestHeaders(request: Request): Headers {
   return headers;
 }
 
+function rewriteAdminAuthCookiePath(cookie: string): string {
+  const cookieName = cookie.slice(0, cookie.indexOf("=")).trim();
+  if (!ADMIN_AUTH_COOKIE_NAMES.has(cookieName)) return cookie;
+
+  return cookie.replace(/(;\s*Path=)\/api\/v1\/admin(?=\s*;|\s*$)/i, "$1/");
+}
+
 function copyAllowedResponseHeaders(source: Headers): Headers {
   const headers = new Headers();
   for (const [name, value] of source) {
@@ -102,7 +110,7 @@ function copyAllowedResponseHeaders(source: Headers): Headers {
   }
 
   for (const cookie of source.getSetCookie()) {
-    headers.append("set-cookie", cookie);
+    headers.append("set-cookie", rewriteAdminAuthCookiePath(cookie));
   }
 
   return headers;

@@ -9,11 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as mainRouteRouteImport } from './routes/(main)/route'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as externalIndexRouteImport } from './routes/(external)/index'
 import { Route as mainChatRouteRouteImport } from './routes/(main)/chat/route'
 import { Route as mainDashboardRouteRouteImport } from './routes/(main)/dashboard/route'
 import { Route as mainMailRouteRouteImport } from './routes/(main)/mail/route'
-import { Route as mainUnauthorizedRouteImport } from './routes/(main)/unauthorized'
 import { Route as mainAuthV2RouteRouteImport } from './routes/(main)/auth/v2/route'
 import { Route as mainDashboardIndexRouteImport } from './routes/(main)/dashboard/index'
 import { Route as mainDashboardSplatRouteImport } from './routes/(main)/dashboard/$'
@@ -48,35 +49,39 @@ import { Route as mainDashboardlegacyDefaultV1RouteRouteImport } from './routes/
 import { Route as mainDashboardlegacyFinanceV1RouteRouteImport } from './routes/(main)/dashboard/(legacy)/finance-v1/route'
 import { Route as ApiV1AdminSplatRouteImport } from './routes/api/v1/admin/$'
 
+const mainRouteRoute = mainRouteRouteImport.update({
+  id: '/(main)',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const externalIndexRoute = externalIndexRouteImport.update({
   id: '/(external)/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const mainChatRouteRoute = mainChatRouteRouteImport.update({
-  id: '/(main)/chat',
+  id: '/chat',
   path: '/chat',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => mainRouteRoute,
 } as any)
 const mainDashboardRouteRoute = mainDashboardRouteRouteImport.update({
-  id: '/(main)/dashboard',
+  id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => mainRouteRoute,
 } as any)
 const mainMailRouteRoute = mainMailRouteRouteImport.update({
-  id: '/(main)/mail',
+  id: '/mail',
   path: '/mail',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const mainUnauthorizedRoute = mainUnauthorizedRouteImport.update({
-  id: '/(main)/unauthorized',
-  path: '/unauthorized',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => mainRouteRoute,
 } as any)
 const mainAuthV2RouteRoute = mainAuthV2RouteRouteImport.update({
-  id: '/(main)/auth/v2',
+  id: '/auth/v2',
   path: '/auth/v2',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => mainRouteRoute,
 } as any)
 const mainDashboardIndexRoute = mainDashboardIndexRouteImport.update({
   id: '/',
@@ -209,14 +214,14 @@ const mainDashboardUsersRouteRoute = mainDashboardUsersRouteRouteImport.update({
   getParentRoute: () => mainDashboardRouteRoute,
 } as any)
 const mainAuthV1LoginRouteRoute = mainAuthV1LoginRouteRouteImport.update({
-  id: '/(main)/auth/v1/login',
+  id: '/auth/v1/login',
   path: '/auth/v1/login',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => mainRouteRoute,
 } as any)
 const mainAuthV1RegisterRouteRoute = mainAuthV1RegisterRouteRouteImport.update({
-  id: '/(main)/auth/v1/register',
+  id: '/auth/v1/register',
   path: '/auth/v1/register',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => mainRouteRoute,
 } as any)
 const mainAuthV2LoginRouteRoute = mainAuthV2LoginRouteRouteImport.update({
   id: '/login',
@@ -259,10 +264,10 @@ const ApiV1AdminSplatRoute = ApiV1AdminSplatRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/login': typeof LoginRoute
   '/chat': typeof mainChatRouteRoute
   '/dashboard': typeof mainDashboardRouteRouteWithChildren
   '/mail': typeof mainMailRouteRoute
-  '/unauthorized': typeof mainUnauthorizedRoute
   '/': typeof externalIndexRoute
   '/auth/v2': typeof mainAuthV2RouteRouteWithChildren
   '/dashboard/academy': typeof mainDashboardAcademyRouteRoute
@@ -299,9 +304,9 @@ export interface FileRoutesByFullPath {
   '/api/v1/admin/$': typeof ApiV1AdminSplatRoute
 }
 export interface FileRoutesByTo {
+  '/login': typeof LoginRoute
   '/chat': typeof mainChatRouteRoute
   '/mail': typeof mainMailRouteRoute
-  '/unauthorized': typeof mainUnauthorizedRoute
   '/': typeof externalIndexRoute
   '/auth/v2': typeof mainAuthV2RouteRouteWithChildren
   '/dashboard/academy': typeof mainDashboardAcademyRouteRoute
@@ -339,10 +344,11 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/(main)': typeof mainRouteRouteWithChildren
+  '/login': typeof LoginRoute
   '/(main)/chat': typeof mainChatRouteRoute
   '/(main)/dashboard': typeof mainDashboardRouteRouteWithChildren
   '/(main)/mail': typeof mainMailRouteRoute
-  '/(main)/unauthorized': typeof mainUnauthorizedRoute
   '/(external)/': typeof externalIndexRoute
   '/(main)/auth/v2': typeof mainAuthV2RouteRouteWithChildren
   '/(main)/dashboard/academy': typeof mainDashboardAcademyRouteRoute
@@ -381,10 +387,10 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/login'
     | '/chat'
     | '/dashboard'
     | '/mail'
-    | '/unauthorized'
     | '/'
     | '/auth/v2'
     | '/dashboard/academy'
@@ -421,9 +427,9 @@ export interface FileRouteTypes {
     | '/api/v1/admin/$'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/login'
     | '/chat'
     | '/mail'
-    | '/unauthorized'
     | '/'
     | '/auth/v2'
     | '/dashboard/academy'
@@ -460,10 +466,11 @@ export interface FileRouteTypes {
     | '/api/v1/admin/$'
   id:
     | '__root__'
+    | '/(main)'
+    | '/login'
     | '/(main)/chat'
     | '/(main)/dashboard'
     | '/(main)/mail'
-    | '/(main)/unauthorized'
     | '/(external)/'
     | '/(main)/auth/v2'
     | '/(main)/dashboard/academy'
@@ -501,19 +508,28 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  mainChatRouteRoute: typeof mainChatRouteRoute
-  mainDashboardRouteRoute: typeof mainDashboardRouteRouteWithChildren
-  mainMailRouteRoute: typeof mainMailRouteRoute
-  mainUnauthorizedRoute: typeof mainUnauthorizedRoute
+  mainRouteRoute: typeof mainRouteRouteWithChildren
+  LoginRoute: typeof LoginRoute
   externalIndexRoute: typeof externalIndexRoute
-  mainAuthV2RouteRoute: typeof mainAuthV2RouteRouteWithChildren
-  mainAuthV1LoginRouteRoute: typeof mainAuthV1LoginRouteRoute
-  mainAuthV1RegisterRouteRoute: typeof mainAuthV1RegisterRouteRoute
   ApiV1AdminSplatRoute: typeof ApiV1AdminSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/(main)': {
+      id: '/(main)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof mainRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(external)/': {
       id: '/(external)/'
       path: '/'
@@ -526,35 +542,28 @@ declare module '@tanstack/react-router' {
       path: '/chat'
       fullPath: '/chat'
       preLoaderRoute: typeof mainChatRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof mainRouteRoute
     }
     '/(main)/dashboard': {
       id: '/(main)/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof mainDashboardRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof mainRouteRoute
     }
     '/(main)/mail': {
       id: '/(main)/mail'
       path: '/mail'
       fullPath: '/mail'
       preLoaderRoute: typeof mainMailRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/(main)/unauthorized': {
-      id: '/(main)/unauthorized'
-      path: '/unauthorized'
-      fullPath: '/unauthorized'
-      preLoaderRoute: typeof mainUnauthorizedRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof mainRouteRoute
     }
     '/(main)/auth/v2': {
       id: '/(main)/auth/v2'
       path: '/auth/v2'
       fullPath: '/auth/v2'
       preLoaderRoute: typeof mainAuthV2RouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof mainRouteRoute
     }
     '/(main)/dashboard/': {
       id: '/(main)/dashboard/'
@@ -722,14 +731,14 @@ declare module '@tanstack/react-router' {
       path: '/auth/v1/login'
       fullPath: '/auth/v1/login'
       preLoaderRoute: typeof mainAuthV1LoginRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof mainRouteRoute
     }
     '/(main)/auth/v1/register': {
       id: '/(main)/auth/v1/register'
       path: '/auth/v1/register'
       fullPath: '/auth/v1/register'
       preLoaderRoute: typeof mainAuthV1RegisterRouteRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof mainRouteRoute
     }
     '/(main)/auth/v2/login': {
       id: '/(main)/auth/v2/login'
@@ -864,15 +873,32 @@ const mainAuthV2RouteRouteWithChildren = mainAuthV2RouteRoute._addFileChildren(
   mainAuthV2RouteRouteChildren,
 )
 
-const rootRouteChildren: RootRouteChildren = {
+interface mainRouteRouteChildren {
+  mainChatRouteRoute: typeof mainChatRouteRoute
+  mainDashboardRouteRoute: typeof mainDashboardRouteRouteWithChildren
+  mainMailRouteRoute: typeof mainMailRouteRoute
+  mainAuthV2RouteRoute: typeof mainAuthV2RouteRouteWithChildren
+  mainAuthV1LoginRouteRoute: typeof mainAuthV1LoginRouteRoute
+  mainAuthV1RegisterRouteRoute: typeof mainAuthV1RegisterRouteRoute
+}
+
+const mainRouteRouteChildren: mainRouteRouteChildren = {
   mainChatRouteRoute: mainChatRouteRoute,
   mainDashboardRouteRoute: mainDashboardRouteRouteWithChildren,
   mainMailRouteRoute: mainMailRouteRoute,
-  mainUnauthorizedRoute: mainUnauthorizedRoute,
-  externalIndexRoute: externalIndexRoute,
   mainAuthV2RouteRoute: mainAuthV2RouteRouteWithChildren,
   mainAuthV1LoginRouteRoute: mainAuthV1LoginRouteRoute,
   mainAuthV1RegisterRouteRoute: mainAuthV1RegisterRouteRoute,
+}
+
+const mainRouteRouteWithChildren = mainRouteRoute._addFileChildren(
+  mainRouteRouteChildren,
+)
+
+const rootRouteChildren: RootRouteChildren = {
+  mainRouteRoute: mainRouteRouteWithChildren,
+  LoginRoute: LoginRoute,
+  externalIndexRoute: externalIndexRoute,
   ApiV1AdminSplatRoute: ApiV1AdminSplatRoute,
 }
 export const routeTree = rootRouteImport

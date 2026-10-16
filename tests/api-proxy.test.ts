@@ -53,8 +53,36 @@ test("proxies approved paths, methods, bodies, CSRF, request IDs, and multiple c
   assert.equal(response.status, 202);
   assert.equal(response.headers.get("x-request-id"), "backend-request-456");
   assert.deepEqual(response.headers.getSetCookie(), [
-    "eggship_admin_at=a; Path=/api/v1/admin; HttpOnly",
-    "eggship_admin_rt=b; Path=/api/v1/admin; HttpOnly",
+    "eggship_admin_at=a; Path=/; HttpOnly",
+    "eggship_admin_rt=b; Path=/; HttpOnly",
+  ]);
+});
+
+test("rewrites only Admin auth cookie paths for SSR page requests", async () => {
+  const response = await proxyAdminApiRequest(
+    new Request("https://admin.example.test/api/v1/admin/auth/login", { method: "POST" }),
+    {
+      backendOrigin: "https://api.example.test/",
+      fetchImpl: async () => {
+        const backendResponse = new Response(null, { status: 200 });
+        backendResponse.headers.append(
+          "set-cookie",
+          "eggship_admin_at=access; Path=/api/v1/admin; HttpOnly; SameSite=Lax",
+        );
+        backendResponse.headers.append(
+          "set-cookie",
+          "eggship_admin_rt=refresh; Path=/api/v1/admin; HttpOnly; SameSite=Lax",
+        );
+        backendResponse.headers.append("set-cookie", "eggship_admin_csrf=csrf; Path=/api/v1/admin; SameSite=Lax");
+        return backendResponse;
+      },
+    },
+  );
+
+  assert.deepEqual(response.headers.getSetCookie(), [
+    "eggship_admin_at=access; Path=/; HttpOnly; SameSite=Lax",
+    "eggship_admin_rt=refresh; Path=/; HttpOnly; SameSite=Lax",
+    "eggship_admin_csrf=csrf; Path=/api/v1/admin; SameSite=Lax",
   ]);
 });
 

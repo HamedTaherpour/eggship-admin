@@ -12,17 +12,17 @@ EggShip Admin is an independent TanStack Start frontend. The NestJS backend owns
 
 Use a same-origin reverse proxy at the deployment boundary. The browser calls the Admin origin; the proxy forwards approved requests to NestJS, preserves `Set-Cookie`, and forwards only the required request headers. This keeps host-only Admin cookies available to browser requests and SSR requests reaching the Admin server without making tokens browser-readable. It avoids introducing a bespoke BFF in application code while leaving TanStack Start server functions available for narrowly scoped server-only operations.
 
-The public proxy path should preserve `/api/v1/admin` as the upstream request path. This is the lowest-risk baseline because the backend currently sets cookie `Path=/api/v1/admin`; requests under that path will then naturally receive the cookies without a cookie-path transformation. A different public path is possible only after an explicit cookie and CSRF review.
+The public proxy path preserves `/api/v1/admin` as the upstream request path. Because protected document requests such as `/dashboard` are outside the backend auth-cookie path, the proxy deliberately rewrites only the Admin auth cookies (`eggship_admin_at` and `eggship_admin_rt`) from `Path=/api/v1/admin` to `Path=/`. This is required for request-scoped SSR authentication after a full page reload. The Admin CSRF cookie remains scoped to `/api/v1/admin`; no other cookie attributes are rewritten.
 
-This is a proposal, not an implementation or backend cookie change.
+This documents the frontend proxy and SSR implementation; it does not change the backend cookie contract.
 
 ## ADMIN-04 implementation
 
 The frontend now owns a narrow TanStack Start server route at `/api/v1/admin/$`. Its handler delegates to `src/server/api-proxy.ts`, validates that the incoming pathname is exactly `/api/v1/admin` or below it, permits only `GET`, `POST`, `PUT`, `PATCH`, and `DELETE`, and forwards the unchanged request bytes to the configured `API_BACKEND_ORIGIN`. The backend origin is server-only and must be an absolute HTTP(S) origin without credentials or a path. The proxy does not log request data and does not expose backend configuration to the browser.
 
-The proxy request-header allowlist is explicit: `Accept`, `Accept-Language`, `Content-Type`, `Cookie`, `Origin`, `Referer`, `Sec-Fetch-Dest`, `Sec-Fetch-Mode`, `Sec-Fetch-Site`, `X-CSRF-Token`, and `X-Request-Id`. `Authorization`, `Host`, forwarding headers, and arbitrary client headers are not forwarded. Response status, content type, selected safe diagnostic/cache headers, and every `Set-Cookie` value are preserved. No cookie or token is parsed, rewritten, or returned to JavaScript. Automatic refresh and bearer-token transport are intentionally out of scope.
+The proxy request-header allowlist is explicit: `Accept`, `Accept-Language`, `Content-Type`, `Cookie`, `Origin`, `Referer`, `Sec-Fetch-Dest`, `Sec-Fetch-Mode`, `Sec-Fetch-Site`, `X-CSRF-Token`, and `X-Request-Id`. `Authorization`, `Host`, forwarding headers, and arbitrary client headers are not forwarded. Response status, content type, selected safe diagnostic/cache headers, and every `Set-Cookie` value are preserved. The proxy changes only the `Path` attribute of the two Admin auth cookies as described above; cookie values, `Domain`, `SameSite`, `Secure`, expiry, and CSRF cookie scope are not changed or exposed to JavaScript. Automatic refresh and bearer-token transport are intentionally out of scope.
 
-The typed transport in `src/lib/api/transport.ts` is a small same-origin client for generated Admin paths. It defaults to `credentials: "include"`, accepts an `AbortSignal` through `RequestInit`, supports JSON and raw bodies, parses JSON error envelopes, returns non-JSON responses as bytes, and exposes the response/request ID for diagnostics. It does not retry or refresh.
+The typed transport in `src/lib/api/transport.ts` is a small same-origin client for generated Admin paths. It defaults to `credentials: "include"`, accepts an `AbortSignal` through `RequestInit`, supports JSON and raw bodies, parses JSON error envelopes, returns non-JSON responses as bytes, and exposes the response/request ID for diagnostics. Browser transport does not retry or refresh; the request-scoped SSR session resolver performs one backend refresh attempt when restoring a protected document request.
 
 ### Required deployment routing
 
@@ -30,7 +30,7 @@ The public Admin origin must send `/api/v1/admin/*` requests to the TanStack Sta
 
 ### Cookie and CSRF compatibility
 
-The selected public path preserves the backend cookie path `/api/v1/admin`; therefore no `Path` rewrite is performed. The proxy copies multiple `Set-Cookie` headers independently, so backend access/refresh rotation and clearing responses remain intact. `Domain`, `SameSite`, `Secure`, expiry, and cookie values are not rewritten. This is verified by mocked `Response` tests only; a browser against a real backend is still required to verify browser cookie storage and sending behavior.
+The selected public path preserves the backend request path `/api/v1/admin`. The proxy copies multiple `Set-Cookie` headers independently and rewrites only the Admin auth cookie path to `/`, so backend access/refresh rotation and clearing responses remain intact for both API and document requests. `Domain`, `SameSite`, `Secure`, expiry, cookie values, and the CSRF cookie path are not rewritten. This is verified by mocked `Response` tests only; a browser against a real backend is still required to verify browser cookie storage and sending behavior.
 
 Browser mutations must send the CSRF cookie-derived `X-CSRF-Token` while the proxy preserves the browser's `Origin`, `Referer`, and Fetch Metadata headers. The backend must allow the actual public Admin origin(s) in its trusted-origin policy and must validate those headers against that public origin, not the internal `API_BACKEND_ORIGIN`. The proxy never forges or removes those security headers. The CSRF bootstrap endpoint and exact cookie attributes remain backend-owned.
 
@@ -52,9 +52,9 @@ TanStack Start executes initial route loaders on the server by default. SSR load
 
 Use backend-controlled HttpOnly access/refresh cookies with the narrowest valid paths. Browser code must not assume cookies expose tokens. The initial deployment must not rewrite `Domain` or `Path` unless the chosen public topology makes it unavoidable:
 
-- Preserve the public `/api/v1/admin` path so `Path=/api/v1/admin` remains correct end to end.
+- Preserve the public `/api/v1/admin` request path. Admin auth cookies are intentionally rewritten to `Path=/` at the proxy boundary so SSR document requests carry the HttpOnly session cookies; the CSRF cookie remains at `Path=/api/v1/admin`.
 - Prefer host-only cookies by omitting `Domain`; do not broaden a backend cookie to a parent domain merely to make proxying convenient.
-- If a different public path is required, the proxy would need a deliberately reviewed `Set-Cookie` rewrite (at least `Path`, and possibly `Domain`). Such a rewrite changes the browser's cookie scope, can make cookies available to unintended routes or hosts, and must be tested for auth, CSRF, logout, and refresh behavior. It is not assumed harmless.
+- The auth-cookie path rewrite broadens where the two HttpOnly Admin auth cookies are sent on the Admin origin. It is deliberately limited by cookie name and does not broaden the CSRF cookie or change `Domain`, `SameSite`, `Secure`, expiry, or values. It must remain covered by auth, CSRF, logout, refresh, and real-browser deployment tests.
 
 Exact names, `SameSite`, `Secure`, and any unavoidable rewrite rules come from backend and deployment review. **Unresolved.**
 
@@ -92,7 +92,7 @@ The backend remains authoritative. The frontend may hide or disable controls bas
 
 ## Consequences
 
-This foundation does not implement login/logout UI, session management, authorization, refresh, or business modules. It is not a full BFF and it does not make the backend independently secure: deployment routing, trusted-origin configuration, cookie flags, CSRF bootstrap behavior, TLS, and real browser cookie behavior require backend/deployment verification.
+The frontend implementation includes the login/logout UI, request-scoped session restoration, protected-route authorization handling, and one SSR refresh attempt. It is not a full BFF and it does not make the backend independently secure: deployment routing, trusted-origin configuration, cookie flags, CSRF bootstrap behavior, TLS, and real browser cookie behavior require backend/deployment verification.
 
 ## Remaining backend and deployment dependencies / risks
 

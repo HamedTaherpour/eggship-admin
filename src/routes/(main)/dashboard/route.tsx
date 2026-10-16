@@ -23,6 +23,7 @@ export const Route = createFileRoute("/(main)/dashboard")({
 
 function DashboardLayout() {
   const { defaultOpen, variant, collapsible } = Route.useLoaderData();
+  const { admin } = Route.useRouteContext();
 
   return (
     <SidebarProvider
@@ -33,7 +34,7 @@ function DashboardLayout() {
         } as CSSProperties
       }
     >
-      <AppSidebar variant={variant} collapsible={collapsible} />
+      <AppSidebar admin={admin} variant={variant} collapsible={collapsible} />
       <SidebarInset
         className={cn(
           "[html[data-content-layout=centered]_&>*]:mx-auto",

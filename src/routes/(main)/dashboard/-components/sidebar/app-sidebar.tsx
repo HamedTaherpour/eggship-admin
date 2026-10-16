@@ -13,7 +13,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { APP_CONFIG } from "@/config/app-config";
-import { rootUser } from "@/data/users";
+import type { AdminIdentity } from "@/lib/api/admin-session";
 import { sidebarItems } from "@/navigation/sidebar/sidebar-items";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
 
@@ -21,7 +21,7 @@ import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
 import { SupportCard } from "./support-card";
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ admin, ...props }: React.ComponentProps<typeof Sidebar> & { admin: AdminIdentity }) {
   const { sidebarVariant, sidebarCollapsible, isSynced } = usePreferencesStore(
     useShallow((s) => ({
       sidebarVariant: s.values.sidebar_variant,
@@ -34,7 +34,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const collapsible = isSynced ? sidebarCollapsible : props.collapsible;
 
   return (
-    <Sidebar {...props} variant={variant} collapsible={collapsible}>
+    <Sidebar {...props} side="right" variant={variant} collapsible={collapsible}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -50,7 +50,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter>
         <SupportCard />
-        <NavUser user={rootUser} />
+        <NavUser user={{ name: admin.email, email: admin.email, avatar: "" }} />
       </SidebarFooter>
     </Sidebar>
   );

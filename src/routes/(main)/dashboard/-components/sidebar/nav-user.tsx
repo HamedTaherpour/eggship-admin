@@ -1,4 +1,6 @@
-import { CircleUser, CreditCard, EllipsisVertical, LogOut, MessageSquareDot } from "lucide-react";
+import { useState } from "react";
+
+import { CircleUser, CreditCard, EllipsisVertical, LoaderCircle, LogOut, MessageSquareDot } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -10,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
+import { logoutAdmin } from "@/lib/api/admin-session";
 import { getInitials } from "@/lib/utils";
 
 export function NavUser({
@@ -22,6 +25,21 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState(false);
+
+  async function handleLogout() {
+    setLogoutError(false);
+    setIsLoggingOut(true);
+    try {
+      await logoutAdmin();
+      window.location.replace("/login");
+    } catch {
+      setLogoutError(true);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  }
 
   return (
     <SidebarMenu>
@@ -77,9 +95,14 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut />
-              Log out
+            {logoutError ? (
+              <p className="px-2 py-1 text-destructive text-xs" role="alert">
+                خروج انجام نشد؛ اتصال را بررسی کنید.
+              </p>
+            ) : null}
+            <DropdownMenuItem disabled={isLoggingOut} onClick={() => void handleLogout()}>
+              {isLoggingOut ? <LoaderCircle className="animate-spin" /> : <LogOut />}
+              {isLoggingOut ? "در حال خروج..." : "خروج"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
