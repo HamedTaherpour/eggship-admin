@@ -49,7 +49,29 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "CSRF token cookie and frontend-safe token."
+            "description": "CSRF token cookie and frontend-safe token.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store for CSRF bootstrap responses.",
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              },
+              "Set-Cookie": {
+                "description": "Readable `eggship_csrf` cookie scoped to `/`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsrfTokenResponseDto"
+                }
+              }
+            }
           }
         },
         "summary": "Bootstrap the customer browser CSRF token",
@@ -491,7 +513,29 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "CSRF token cookie and frontend-safe token."
+            "description": "CSRF token cookie and frontend-safe token.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store for CSRF bootstrap responses.",
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              },
+              "Set-Cookie": {
+                "description": "Readable `eggship_admin_csrf` cookie scoped to `/api/v1/admin`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CsrfTokenResponseDto"
+                }
+              }
+            }
           }
         },
         "summary": "Bootstrap the Admin browser CSRF token",
@@ -669,6 +713,21 @@
         "responses": {
           "200": {
             "description": "Refresh succeeded; new Admin auth cookies are set.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store for Admin auth responses.",
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              },
+              "Set-Cookie": {
+                "description": "New HttpOnly `eggship_admin_at` and `eggship_admin_rt` cookies.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -715,6 +774,21 @@
         "responses": {
           "200": {
             "description": "Admin cookies cleared; session revoked when identifiable.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always no-store for Admin auth responses.",
+                "schema": {
+                  "type": "string",
+                  "example": "no-store"
+                }
+              },
+              "Set-Cookie": {
+                "description": "Cleared Admin auth cookies and CSRF cookie using Max-Age=0.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
@@ -9788,6 +9862,26 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/ReadinessDataDto"
+          }
+        },
+        "required": ["data"]
+      },
+      "CsrfTokenDataDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Frontend-readable signed double-submit CSRF token.",
+            "example": "synthetic-token-value"
+          }
+        },
+        "required": ["token"]
+      },
+      "CsrfTokenResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CsrfTokenDataDto"
           }
         },
         "required": ["data"]

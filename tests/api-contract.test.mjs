@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 const root = new URL("../", import.meta.url);
+const contract = JSON.parse(await readFile(new URL("contracts/eggship-backend.openapi.json", root), "utf8"));
 const generated = fileURLToPath(new URL("src/generated/api-types.ts", root));
 const checkScript = fileURLToPath(new URL("scripts/check-api-contract.mjs", root));
 
@@ -32,5 +33,36 @@ test("contract drift detection fails for stale generated types without changing 
     assert.match(await readFile(tempOutput, "utf8"), /\/\/ stale/);
   } finally {
     await rm(tempDirectory, { recursive: true, force: true });
+  }
+});
+
+test("CSRF bootstrap responses expose typed tokens for customer and Admin auth", async () => {
+  for (const path of ["/api/v1/auth/csrf", "/api/v1/admin/auth/csrf"]) {
+    const response = contract.paths[path].get.responses["200"];
+
+    assert.equal(response.content["application/json"].schema.$ref, "#/components/schemas/CsrfTokenResponseDto");
+  }
+
+  assert.equal(contract.components.schemas.CsrfTokenDataDto.properties.token.type, "string");
+
+  const generatedSource = await readFile(generated, "utf8");
+  assert.match(
+    generatedSource,
+    /Auth_csrf:[\s\S]*?200:[\s\S]*?"application\/json": components\["schemas"\]\["CsrfTokenResponseDto"\]/,
+  );
+  assert.match(
+    generatedSource,
+    /AdminAuth_csrf:[\s\S]*?200:[\s\S]*?"application\/json": components\["schemas"\]\["CsrfTokenResponseDto"\]/,
+  );
+  assert.match(generatedSource, /CsrfTokenDataDto:[\s\S]*?token: string;/);
+
+  for (const operation of [
+    "AdminAuth_login",
+    "AdminAuth_me",
+    "AdminAuth_refresh",
+    "AdminAuth_logout",
+    "AdminAuth_logoutAll",
+  ]) {
+    assert.match(generatedSource, new RegExp(`${operation}: \\{`));
   }
 });

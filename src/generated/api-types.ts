@@ -2269,6 +2269,16 @@ export interface components {
         ReadinessResponseDto: {
             data: components["schemas"]["ReadinessDataDto"];
         };
+        CsrfTokenDataDto: {
+            /**
+             * @description Frontend-readable signed double-submit CSRF token.
+             * @example synthetic-token-value
+             */
+            token: string;
+        };
+        CsrfTokenResponseDto: {
+            data: components["schemas"]["CsrfTokenDataDto"];
+        };
         RequestOtpBodyDto: {
             /**
              * @description Iranian mobile number in a supported input form. Accepted examples include 09121234567, 9121234567, +989121234567, and 00989121234567. Normalized internally to canonical E.164 (+989xxxxxxxxx). Responses never reveal whether the phone already has an account.
@@ -4307,9 +4317,15 @@ export interface operations {
             /** @description CSRF token cookie and frontend-safe token. */
             200: {
                 headers: {
+                    /** @description Always no-store for CSRF bootstrap responses. */
+                    "Cache-Control"?: string;
+                    /** @description Readable `eggship_csrf` cookie scoped to `/`. */
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CsrfTokenResponseDto"];
+                };
             };
         };
     };
@@ -4651,9 +4667,15 @@ export interface operations {
             /** @description CSRF token cookie and frontend-safe token. */
             200: {
                 headers: {
+                    /** @description Always no-store for CSRF bootstrap responses. */
+                    "Cache-Control"?: string;
+                    /** @description Readable `eggship_admin_csrf` cookie scoped to `/api/v1/admin`. */
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CsrfTokenResponseDto"];
+                };
             };
         };
     };
@@ -4784,6 +4806,10 @@ export interface operations {
             /** @description Refresh succeeded; new Admin auth cookies are set. */
             200: {
                 headers: {
+                    /** @description Always no-store for Admin auth responses. */
+                    "Cache-Control"?: string;
+                    /** @description New HttpOnly `eggship_admin_at` and `eggship_admin_rt` cookies. */
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4822,6 +4848,10 @@ export interface operations {
             /** @description Admin cookies cleared; session revoked when identifiable. */
             200: {
                 headers: {
+                    /** @description Always no-store for Admin auth responses. */
+                    "Cache-Control"?: string;
+                    /** @description Cleared Admin auth cookies and CSRF cookie using Max-Age=0. */
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content: {
