@@ -34,6 +34,8 @@ The selected public path preserves the backend cookie path `/api/v1/admin`; ther
 
 Browser mutations must send the CSRF cookie-derived `X-CSRF-Token` while the proxy preserves the browser's `Origin`, `Referer`, and Fetch Metadata headers. The backend must allow the actual public Admin origin(s) in its trusted-origin policy and must validate those headers against that public origin, not the internal `API_BACKEND_ORIGIN`. The proxy never forges or removes those security headers. The CSRF bootstrap endpoint and exact cookie attributes remain backend-owned.
 
+The backend contract exposes `GET /api/v1/admin/auth/csrf` as the safe bootstrap request. Browser code should call the same-origin path with credentials included, let the backend establish its namespace CSRF cookie, and use only the frontend-safe token returned by that endpoint as `X-CSRF-Token` on subsequent mutations. It must never read, copy, or serialize an authentication cookie. The current OpenAPI snapshot declares the `200` response as having no content (`content?: never`) and declares no token response header or DTO. Therefore this repository does not invent a response type: the backend contract must document the actual returned-token channel before the frontend can consume it as typed data. Do not assume the CSRF cookie is readable from `/login`; its `Path` may make it visible only under `/api/v1/admin`.
+
 SSR callers must explicitly use an absolute public Admin URL and forward only the incoming request's approved `Cookie`, CSRF, origin, referer, Fetch Metadata, and request-ID headers. SSR data must not serialize cookie values, tokens, or sensitive error bodies into loader data, HTML, or logs. Browser callers use the relative same-origin path.
 
 ## Options and decisions to resolve
@@ -97,6 +99,7 @@ This foundation does not implement login/logout UI, session management, authoriz
 - Confirm the exact public Admin origin(s), including local, preview, and production origins, in the backend trusted-origin/CSRF allowlist.
 - Confirm the backend emits host-only cookies (no `Domain`), with the intended `Secure`, `SameSite`, expiry, and HttpOnly attributes for every Admin auth and CSRF cookie.
 - Verify real browser login, refresh rotation, logout clearing, CSRF bootstrap, rejected origins, and rejected/missing CSRF headers through the deployed proxy.
+- Reconcile the CSRF endpoint implementation with the OpenAPI snapshot: the safe returned-token channel is not currently described, so browser bootstrap cannot be typed or verified from this contract alone.
 - Ensure the deployment forwards `/api/v1/admin/*` to this server route, preserves response `Set-Cookie` multiplicity, and does not independently rewrite cookie attributes.
 - Define observability handling so request IDs are retained without recording cookies, authorization material, tokens, or sensitive bodies.
 - Concurrent refresh coordination, authorization UX, pagination/cache policy, idempotency, and API error presentation remain unresolved and are intentionally not implemented here.

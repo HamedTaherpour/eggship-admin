@@ -1,5 +1,5 @@
-import { ApiRequestError, createAdminApiTransport } from "../src/lib/api/transport.ts";
-import { ApiProxyPathError, proxyAdminApiRequest } from "../src/server/api-proxy.ts";
+import { type AdminApiPath, ApiRequestError, createAdminApiTransport } from "../src/lib/api/transport.ts";
+import { ApiProxyConfigurationError, ApiProxyPathError, proxyAdminApiRequest } from "../src/server/api-proxy.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -66,6 +66,34 @@ test("rejects paths outside the approved Admin API prefix", async () => {
     }),
     ApiProxyPathError,
   );
+
+  await assert.rejects(
+    proxyAdminApiRequest(new Request("https://admin.example.test/api/v1/admin/%2e%2e/health"), {
+      backendOrigin: "https://api.example.test/",
+      fetchImpl: async () => new Response("unexpected"),
+    }),
+    ApiProxyPathError,
+  );
+});
+
+test("rejects invalid backend origins before making a request", async () => {
+  await assert.rejects(
+    proxyAdminApiRequest(new Request("https://admin.example.test/api/v1/admin/orders"), {
+      backendOrigin: "https://user:secret@api.example.test/",
+      fetchImpl: async () => new Response("unexpected"),
+    }),
+    ApiProxyConfigurationError,
+  );
+});
+
+test("does not follow upstream redirects", async () => {
+  const response = await proxyAdminApiRequest(new Request("https://admin.example.test/api/v1/admin/auth/login"), {
+    backendOrigin: "https://api.example.test/",
+    fetchImpl: async () => new Response(null, { status: 302, headers: { location: "https://evil.example.test" } }),
+  });
+
+  assert.equal(response.status, 502);
+  assert.equal(response.headers.get("location"), null);
 });
 
 test("returns 405 for methods outside the Admin API contract", async () => {
@@ -104,6 +132,33 @@ test("preserves non-JSON content and handles network failures without logging se
   assert.deepEqual(await unavailable.json(), { error: { code: "API_UNAVAILABLE", message: "API unavailable" } });
 });
 
+test("preserves CSRF and origin headers while request cancellation remains observable", async () => {
+  const controller = new AbortController();
+  let forwardedHeaders: Headers | undefined;
+  const pending = proxyAdminApiRequest(
+    new Request("https://admin.example.test/api/v1/admin/orders", {
+      signal: controller.signal,
+      headers: {
+        origin: "https://admin.example.test",
+        referer: "https://admin.example.test/orders",
+        "x-csrf-token": "csrf-value",
+      },
+    }),
+    {
+      backendOrigin: "https://api.example.test/",
+      fetchImpl: async (_url, init) => {
+        forwardedHeaders = new Headers(init?.headers);
+        throw new DOMException("The operation was aborted", "AbortError");
+      },
+    },
+  );
+
+  controller.abort();
+  await assert.rejects(pending, /aborted/i);
+  assert.equal(forwardedHeaders?.get("origin"), "https://admin.example.test");
+  assert.equal(forwardedHeaders?.get("x-csrf-token"), "csrf-value");
+});
+
 test("typed transport forwards credentials and parses API error envelopes", async () => {
   const transport = createAdminApiTransport({
     fetchImpl: async (_input, init) => {
@@ -127,4 +182,26 @@ test("typed transport forwards credentials and parses API error envelopes", asyn
       return true;
     },
   );
+});
+
+test("typed transport blocks absolute origins, validates paths, and handles empty/non-JSON responses", async () => {
+  const crossOriginTransport = createAdminApiTransport({ baseUrl: "https://api.example.test/" });
+  await assert.rejects(crossOriginTransport("/api/v1/admin/auth/me"), /same-origin/);
+
+  const transport = createAdminApiTransport({
+    fetchImpl: async (input) => {
+      assert.equal(String(input), "/api/v1/admin/auth/me");
+      return new Response(null, { status: 204 });
+    },
+  });
+  const empty = await transport("/api/v1/admin/auth/me");
+  assert.equal(empty.data, null);
+
+  const rawTransport = createAdminApiTransport({
+    fetchImpl: async () => new Response("not-json", { status: 200, headers: { "content-type": "text/plain" } }),
+  });
+  const raw = await rawTransport("/api/v1/admin/auth/me");
+  assert.equal(new TextDecoder().decode(raw.data as ArrayBuffer), "not-json");
+
+  await assert.rejects(transport("/api/v1/admin/%2e%2e/health" as AdminApiPath), /traversal|under/);
 });

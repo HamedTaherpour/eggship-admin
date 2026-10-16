@@ -25,6 +25,8 @@ const FORWARDED_RESPONSE_HEADERS = new Set([
   "x-request-id",
 ]);
 
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
 export class ApiProxyConfigurationError extends Error {}
 
 export class ApiProxyPathError extends Error {}
@@ -63,6 +65,21 @@ function validateBackendOrigin(origin: string): URL {
 export function assertAdminApiPath(pathname: string): void {
   if (pathname !== ADMIN_API_PREFIX && !pathname.startsWith(`${ADMIN_API_PREFIX}/`)) {
     throw new ApiProxyPathError("Only /api/v1/admin/* paths are proxied");
+  }
+
+  const pathRemainder = pathname.slice(ADMIN_API_PREFIX.length);
+  if (/%(?:2e|2f|5c)/i.test(pathRemainder) || pathRemainder.includes("\\")) {
+    throw new ApiProxyPathError("Encoded path traversal is not allowed");
+  }
+
+  let decodedPath: string;
+  try {
+    decodedPath = decodeURIComponent(pathname);
+  } catch {
+    throw new ApiProxyPathError("Malformed encoded path");
+  }
+  if (decodedPath.split("/").some((segment) => segment === "." || segment === "..")) {
+    throw new ApiProxyPathError("Path traversal is not allowed");
   }
 }
 
@@ -121,7 +138,11 @@ export async function proxyAdminApiRequest(
       redirect: "manual",
       signal: request.signal,
     });
-  } catch {
+  } catch (error) {
+    if (request.signal.aborted || (error instanceof DOMException && error.name === "AbortError")) {
+      throw error;
+    }
+
     const requestId = request.headers.get("x-request-id");
     return new Response(JSON.stringify({ error: { code: "API_UNAVAILABLE", message: "API unavailable" } }), {
       status: 502,
@@ -129,6 +150,13 @@ export async function proxyAdminApiRequest(
         "content-type": "application/json",
         ...(requestId ? { "x-request-id": requestId } : {}),
       },
+    });
+  }
+
+  if (REDIRECT_STATUSES.has(backendResponse.status)) {
+    return new Response(JSON.stringify({ error: { code: "API_UPSTREAM_REDIRECT", message: "API unavailable" } }), {
+      status: 502,
+      headers: { "content-type": "application/json" },
     });
   }
 

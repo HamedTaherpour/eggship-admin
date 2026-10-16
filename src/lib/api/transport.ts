@@ -39,6 +39,65 @@ export type AdminApiRequestOptions = Omit<RequestInit, "body" | "headers" | "met
   headers?: HeadersInit;
 };
 
+function assertRelativeAdminPath(path: string): void {
+  let url: URL;
+  try {
+    url = new URL(path, "https://admin.invalid");
+  } catch {
+    throw new TypeError("Admin API paths must be valid same-origin paths");
+  }
+
+  if (
+    url.origin !== "https://admin.invalid" ||
+    (url.pathname !== "/api/v1/admin" && !url.pathname.startsWith("/api/v1/admin/"))
+  ) {
+    throw new TypeError("Admin API paths must stay under /api/v1/admin");
+  }
+
+  if (/%(?:2e|2f|5c)/i.test(url.pathname) || url.pathname.includes("\\")) {
+    throw new TypeError("Admin API paths must not contain encoded traversal");
+  }
+
+  let decodedPath: string;
+  try {
+    decodedPath = decodeURIComponent(url.pathname);
+  } catch {
+    throw new TypeError("Admin API paths must use valid encoding");
+  }
+
+  if (decodedPath.split("/").some((segment) => segment === "." || segment === "..")) {
+    throw new TypeError("Admin API paths must not contain traversal segments");
+  }
+}
+
+function resolveRequestUrl(baseUrl: string, path: string): string {
+  assertRelativeAdminPath(path);
+  if (!baseUrl) return path;
+
+  const base = new URL(baseUrl, "https://admin.invalid");
+  if (base.origin !== "https://admin.invalid") {
+    throw new TypeError("Admin API transport only supports same-origin URLs");
+  }
+
+  return new URL(path, base).toString();
+}
+
+function parseJson(value: string): unknown {
+  if (!value) return null;
+
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function asErrorEnvelope(value: unknown): ApiErrorEnvelope | null {
+  if (!value || typeof value !== "object") return null;
+  const error = (value as { error?: unknown }).error;
+  return error && typeof error === "object" ? (value as ApiErrorEnvelope) : null;
+}
+
 export function createAdminApiTransport(options: AdminApiTransportOptions = {}) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const baseUrl = options.baseUrl ?? "";
@@ -58,7 +117,7 @@ export function createAdminApiTransport(options: AdminApiTransportOptions = {}) 
       body = JSON.stringify(requestOptions.json);
     }
 
-    const requestUrl = baseUrl ? new URL(path, baseUrl).toString() : path;
+    const requestUrl = resolveRequestUrl(baseUrl, path);
     const response = await fetchImpl(requestUrl, {
       ...requestOptions,
       method: requestOptions.method ?? "GET",
@@ -69,12 +128,16 @@ export function createAdminApiTransport(options: AdminApiTransportOptions = {}) 
 
     const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
     const isJson = contentType.includes("application/json") || contentType.includes("+json");
-    const data = (isJson ? await response.json() : await response.arrayBuffer()) as TResponse;
-
-    if (!response.ok) {
-      throw new ApiRequestError(response, isJson ? (data as ApiErrorEnvelope) : null);
+    const bytes = await response.arrayBuffer();
+    let data: unknown = null;
+    if (bytes.byteLength > 0) {
+      data = isJson ? parseJson(new TextDecoder().decode(bytes)) : bytes;
     }
 
-    return { data, response };
+    if (!response.ok) {
+      throw new ApiRequestError(response, isJson ? asErrorEnvelope(data) : null);
+    }
+
+    return { data: data as TResponse, response };
   };
 }
