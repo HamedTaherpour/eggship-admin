@@ -41,6 +41,7 @@
       "!.nitro",
       "!.vercel",
       "!**/src/routeTree.gen.ts",
+      "!!src/generated/api-types.ts",
       "!**/src/styles/styles.css",
       "!src/components/ui",
       "!src/components/calendar"
@@ -48,7 +49,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/routes/**/$*.tsx"],
+      "includes": ["src/routes/**/$*.ts", "src/routes/**/$*.tsx"],
       "linter": {
         "rules": {
           "style": {

@@ -23,7 +23,6 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { getInitials } from "@/lib/utils";
 
@@ -36,9 +35,6 @@ const channelBrandIcons = {
 } as const;
 
 export function ChatSidebar() {
-  const { state } = useSidebar();
-  const _isCollapsed = state === "collapsed";
-
   return (
     <Sidebar
       collapsible="offcanvas"

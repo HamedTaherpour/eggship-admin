@@ -10,7 +10,7 @@ export function RootError({ error, reset }: ErrorComponentProps) {
         <p className="text-muted-foreground">
           An unexpected error occurred while loading this page. Try again or return to the dashboard.
         </p>
-        {import.meta.env.DEV ? <p className="text-destructive text-sm">{error.message}</p> : null}
+        {import.meta.env.DEV ? <p className="text-destructive text-sm">{String(error)}</p> : null}
       </div>
       <div className="flex flex-wrap justify-center gap-2">
         <Button onClick={reset}>Try again</Button>

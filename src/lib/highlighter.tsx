@@ -90,17 +90,24 @@ export async function loadHighlighter(language: string) {
       const tokens = lang === "ansi" ? code.split("\n").flatMap((line) => tokenize(line)) : tokenize(code);
 
       return {
-        lines: tokens.map((line) =>
-          line.map((token, index) => (
-            <span
-              key={index}
-              style={token.htmlStyle as React.CSSProperties}
-              className="text-(--shiki-light) dark:text-(--shiki-dark)"
-            >
-              {token.content}
-            </span>
-          )),
-        ),
+        lines: tokens.map((line) => {
+          let offset = 0;
+
+          return line.map((token) => {
+            const key = `${offset}-${token.content}`;
+            offset += token.content.length;
+
+            return (
+              <span
+                key={key}
+                style={token.htmlStyle as React.CSSProperties}
+                className="text-(--shiki-light) dark:text-(--shiki-dark)"
+              >
+                {token.content}
+              </span>
+            );
+          });
+        }),
         state: shiki.getLastGrammarState(tokens),
       };
     },

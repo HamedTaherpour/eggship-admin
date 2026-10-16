@@ -18,14 +18,10 @@ const formSchema = z
     path: ["confirmPassword"],
   });
 
-const onSubmit = (data: z.infer<typeof formSchema>) => {
+const onSubmit = (_data: z.infer<typeof formSchema>) => {
   toast.add({
-    title: "You submitted the following values",
-    description: (
-      <pre className="mt-2 w-[320px] rounded-md bg-neutral-950 p-4">
-        <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-      </pre>
-    ),
+    title: "ثبت‌نام هنوز متصل نیست",
+    description: "این صفحه فقط نمونه رابط کاربری است و به API احراز هویت متصل نشده است.",
   });
 };
 

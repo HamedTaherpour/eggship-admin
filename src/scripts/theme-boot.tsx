@@ -146,7 +146,7 @@ export function ThemeBootScript() {
           window.addEventListener("load", scheduleBackgroundFontLoading, { once: true });
         }
       } catch (e) {
-        console.warn("ThemeBootScript error:", e);
+        // Preferences are optional; the document keeps its server-rendered defaults on failure.
       }
     })();
   `;

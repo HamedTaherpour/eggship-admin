@@ -1,6 +1,6 @@
-# TanStack Start Admin Template with TypeScript & Shadcn UI
+# EggShip Admin
 
-**Studio Admin** - Includes multiple dashboards, authentication layouts, customizable theme presets, and more.
+Persian/RTL admin frontend for EggShip, built on the TanStack Start and shadcn/ui template.
 
 <img src="https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard/blob/main/media/dashboard.png?version=5" alt="Dashboard Screenshot">
 
@@ -96,22 +96,22 @@ _Deploy your own copy with one click._
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/arhamkhnz/tanstack-shadcn-admin-dashboard.git
+   git clone https://github.com/HamedTaherpour/eggship-admin.git
    ```
    
 2. **Navigate into the project**
    ```bash
-    cd tanstack-shadcn-admin-dashboard
+    cd eggship-admin
    ```
    
 3. **Install dependencies**
    ```bash
-    npm install
+    pnpm install
    ```
 
 4. **Start the development server**
    ```bash
-    npm run dev
+    pnpm dev
    ```
 
 Your app will be running at [http://localhost:3000](http://localhost:3000)

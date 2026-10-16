@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 
 export function GoogleButton({ className, ...props }: React.ComponentProps<typeof Button>) {
   return (
-    <Button variant="secondary" className={cn(className)} {...props}>
+    <Button variant="secondary" className={cn(className)} disabled {...props}>
       <SimpleIcon icon={siGoogle} className="size-4" />
-      Continue with Google
+      ورود با Google (به‌زودی)
     </Button>
   );
 }

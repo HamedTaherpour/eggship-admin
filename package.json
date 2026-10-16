@@ -1,7 +1,12 @@
 {
-  "name": "tanstack-shadcn-admin-dashboard",
+  "name": "eggship-admin",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "imports": {
     "#/*": "./src/*"
   },
@@ -11,9 +16,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "format": "biome format",
+    "format:check": "biome ci --linter-enabled=false --assist-enabled=false",
+    "api:generate": "node scripts/generate-api-types.mjs",
+    "api:check": "node scripts/check-api-contract.mjs",
     "lint": "biome lint",
     "check": "biome check",
     "check:fix": "biome check --write",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/smoke.test.mjs tests/api-contract.test.mjs tests/api-proxy.test.ts",
     "prepare": "husky",
     "generate:presets": "ts-node -P tsconfig.scripts.json src/scripts/generate-theme-presets.ts"
   },
@@ -73,6 +83,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
+    "openapi-typescript": "7.13.0",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3",
     "vite": "^8.3.4"

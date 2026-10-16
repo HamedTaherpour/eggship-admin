@@ -1,0 +1,17 @@
+# Keep source, configuration, and documentation files stable across Windows and Unix hosts.
+* text=auto eol=lf
+
+# Native Windows scripts are the exception.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Do not normalize binary assets.
+*.gif binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.webp binary
+*.woff binary
+*.woff2 binary

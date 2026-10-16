@@ -2,7 +2,7 @@
 
 ## Project overview
 
-Studio Admin is a responsive admin dashboard built with TanStack Start, React 19, TypeScript, Tailwind CSS v4, and shadcn/ui.
+EggShip Admin is a responsive Persian/RTL admin dashboard built with TanStack Start, React 19, TypeScript, Tailwind CSS v4, and shadcn/ui.
 
 This repository uses the shadcn `base-nova` style. When the shadcn CLI reports `base: "base"`, it refers to Base UI. Always inspect the local components in `src/components/ui/` because individual wrappers may use different primitives.
 
@@ -39,26 +39,29 @@ Do not modify files inside `src/components/ui/` or `src/components/calendar/`. K
 
 ## Setup
 
-This project uses npm.
+This project uses pnpm.
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Available commands:
 
 ```bash
-npm run build
-npm run lint
-npm run format
-npm run check
-npm run check:fix
-npm run generate-routes
-npm run generate:presets
+pnpm build
+pnpm lint
+pnpm format
+pnpm format:check
+pnpm check
+pnpm check:fix
+pnpm typecheck
+pnpm test
+pnpm generate-routes
+pnpm generate:presets
 ```
 
-There is currently no automated test command. Run build, lint, check, typecheck, or other validation commands only when the user explicitly requests that validation.
+The smoke test is backend-independent. Run build, lint, format:check, check, typecheck, test, or other validation commands when the task requests validation.
 
 ## Co-location-based structure
 

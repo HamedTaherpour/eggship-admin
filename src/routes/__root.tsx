@@ -67,7 +67,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 
   return (
     <html
-      lang="en"
+      lang="fa"
+      dir="rtl"
       data-theme-mode={theme_mode}
       data-theme-preset={theme_preset}
       data-content-layout={content_layout}
