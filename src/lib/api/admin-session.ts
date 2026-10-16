@@ -11,6 +11,8 @@ type SessionStatusResponse = components["schemas"]["AuthSessionStatusResponseDto
 
 const transport = createAdminApiTransport();
 let refreshPromise: Promise<void> | null = null;
+let logoutPromise: Promise<void> | null = null;
+let logoutInProgress = false;
 
 function isCsrfFailure(error: unknown): error is ApiRequestError {
   return (
@@ -21,7 +23,18 @@ function isCsrfFailure(error: unknown): error is ApiRequestError {
   );
 }
 
+function isRetryableLogoutCsrfFailure(error: unknown): error is ApiRequestError {
+  return (
+    error instanceof ApiRequestError &&
+    (error.envelope?.error?.code === "CSRF_TOKEN_MISSING" || error.envelope?.error?.code === "CSRF_TOKEN_INVALID")
+  );
+}
+
 async function refreshSession(): Promise<void> {
+  if (logoutInProgress) {
+    throw new Error("Admin logout is in progress");
+  }
+
   refreshPromise ??= (async () => {
     const headers = await csrfHeaders();
     try {
@@ -65,14 +78,37 @@ export async function getAdminIdentity(): Promise<AdminIdentity> {
 }
 
 export async function logoutAdmin(): Promise<void> {
-  const headers = await csrfHeaders();
-  try {
-    await transport<SessionStatusResponse>("/api/v1/admin/auth/logout", { method: "POST", headers });
-    resetAdminSessionState();
-  } catch (error) {
-    if (isCsrfFailure(error)) invalidateCsrfToken();
-    throw error;
-  }
+  if (logoutPromise !== null) return logoutPromise;
+
+  logoutInProgress = true;
+  const activeRefresh = refreshPromise;
+  logoutPromise = (async () => {
+    // Let a refresh already in flight finish before logout clears its rotated cookies.
+    await activeRefresh?.catch(() => undefined);
+
+    try {
+      await transport<SessionStatusResponse>("/api/v1/admin/auth/logout", {
+        method: "POST",
+        headers: await csrfHeaders(),
+      });
+      resetAdminSessionState();
+    } catch (error) {
+      if (isCsrfFailure(error)) invalidateCsrfToken();
+      if (!isRetryableLogoutCsrfFailure(error)) throw error;
+
+      // Logout is idempotent, so retry only after the backend explicitly rejects the CSRF token.
+      await transport<SessionStatusResponse>("/api/v1/admin/auth/logout", {
+        method: "POST",
+        headers: await csrfHeaders(),
+      });
+      resetAdminSessionState();
+    }
+  })().finally(() => {
+    logoutInProgress = false;
+    logoutPromise = null;
+  });
+
+  return logoutPromise;
 }
 
 export function getAdminErrorCode(error: unknown): string | null {

@@ -99,7 +99,7 @@ function asErrorEnvelope(value: unknown): ApiErrorEnvelope | null {
 }
 
 export function createAdminApiTransport(options: AdminApiTransportOptions = {}) {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = options.fetchImpl;
   const baseUrl = options.baseUrl ?? "";
 
   return async function requestAdminApi<TResponse = unknown>(
@@ -118,7 +118,7 @@ export function createAdminApiTransport(options: AdminApiTransportOptions = {}) 
     }
 
     const requestUrl = resolveRequestUrl(baseUrl, path);
-    const response = await fetchImpl(requestUrl, {
+    const response = await (fetchImpl ?? fetch)(requestUrl, {
       ...requestOptions,
       method: requestOptions.method ?? "GET",
       headers,

@@ -33,6 +33,14 @@ function copyRequestHeaders(request: Request): Headers {
   return headers;
 }
 
+function readCookie(cookieHeader: string | null, name: string): string | null {
+  for (const cookie of cookieHeader?.split(/;\s*/) ?? []) {
+    const separator = cookie.indexOf("=");
+    if (separator > 0 && cookie.slice(0, separator) === name) return cookie.slice(separator + 1);
+  }
+  return null;
+}
+
 type SetCookieSink = (cookie: string) => void;
 
 function forwardSetCookies(response: Response, setCookie: SetCookieSink): void {
@@ -85,15 +93,18 @@ export async function resolveAdminSession(
     });
     if (meResponse.status !== 401) return readAdmin(meResponse);
 
-    const csrfResponse = await fetchImpl(new URL("/api/v1/admin/auth/csrf", request.url), {
-      headers,
-      credentials: "include",
-    });
-    if (setCookie) forwardSetCookies(csrfResponse, setCookie);
-    if (!csrfResponse.ok) return { status: classifyAuthResponse(csrfResponse.status) };
+    let csrfToken = readCookie(headers.get("cookie"), "eggship_admin_csrf");
+    if (!csrfToken) {
+      const csrfResponse = await fetchImpl(new URL("/api/v1/admin/auth/csrf", request.url), {
+        headers,
+        credentials: "include",
+      });
+      if (setCookie) forwardSetCookies(csrfResponse, setCookie);
+      if (!csrfResponse.ok) return { status: classifyAuthResponse(csrfResponse.status) };
 
-    const csrfBody = (await csrfResponse.json()) as CsrfResponse;
-    const csrfToken = csrfBody.data?.token;
+      const csrfBody = (await csrfResponse.json()) as CsrfResponse;
+      csrfToken = csrfBody.data?.token ?? null;
+    }
     if (!csrfToken) return { status: "unavailable" };
 
     const refreshHeaders = new Headers(headers);
